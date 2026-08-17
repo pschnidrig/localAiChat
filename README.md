@@ -8,7 +8,7 @@ A minimal Blazor Server app that streams responses from a locally running LLM vi
 
 - **Blazor Server** app (.NET 10)
 - Talks to **LM Studio's local OpenAI-compatible server**
-- Streams responses token-by-token directly in the browser
+- Sends the full conversation and displays the complete response when ready
 - Keeps full conversation history per session
 
 ---
@@ -68,7 +68,7 @@ LocalAI/
 │   └── LmStudioOptions.cs   # Strongly-typed config model
 ├── Components/
 │   ├── Pages/
-│   │   └── Home.razor       # Chat UI + streaming logic
+│   │   └── Home.razor       # Chat UI + response logic
 │   ├── _Imports.razor       # Global usings
 │   └── ...
 ├── appsettings.json         # LM Studio connection settings
