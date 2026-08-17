@@ -1,0 +1,61 @@
+@page "/"
+@inject IChatClient ChatClient
+@rendermode InteractiveServer
+
+<PageTitle>Local LLM Chat</PageTitle>
+
+<h1>Local LLM Chat</h1>
+
+<div style="height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem;">
+    @foreach (var msg in _history)
+    {
+        <p><strong>@(msg.Role == ChatRole.User ? "You" : "AI"):</strong> @msg.Text</p>
+    }
+</div>
+
+<input @bind="_input" @bind:event="oninput" @onkeyup="HandleKeyUp" disabled="@_busy" style="width: 80%;" placeholder="Ask something..." />
+<button @onclick="SendAsync" disabled="@(_busy || string.IsNullOrWhiteSpace(_input))">Send</button>
+
+@code {
+    private string _input = string.Empty;
+    private bool _busy;
+    private List<ChatMessage> _history = new();
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_input) || _busy) return;
+
+        _history.Add(new ChatMessage(ChatRole.User, _input));
+        _input = string.Empty;
+        _busy = true;
+
+        var aiMessage = new ChatMessage(ChatRole.Assistant, string.Empty);
+        _history.Add(aiMessage);
+
+        try
+        {
+            var sb = new System.Text.StringBuilder();
+            await foreach (var chunk in ChatClient.GetStreamingResponseAsync(_history.SkipLast(1).ToList()))
+            {
+                sb.Append(chunk.Text);
+                aiMessage.Contents = [new TextContent(sb.ToString())];
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (aiMessage.Text.Length == 0)
+                aiMessage.Contents = [new TextContent($"Error: {ex.Message}")];
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SendAsync();
+    }
+}
